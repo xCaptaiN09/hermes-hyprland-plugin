@@ -185,6 +185,63 @@ std::string handle_command(const std::string& cmd) {
             response["x"] = x;
             response["y"] = y;
         }
+        else if (action == "native_click") {
+            int btn = req.value("button", 272);
+            if (!g_pInputManager->m_pointers.empty()) {
+                auto pointer = g_pInputManager->m_pointers.front();
+                
+                IPointer::SButtonEvent pressEvent;
+                pressEvent.button = btn;
+                pressEvent.state = WL_POINTER_BUTTON_STATE_PRESSED;
+                pressEvent.mouse = true;
+                g_pInputManager->onMouseButton(pressEvent, pointer);
+
+                IPointer::SButtonEvent releaseEvent;
+                releaseEvent.button = btn;
+                releaseEvent.state = WL_POINTER_BUTTON_STATE_RELEASED;
+                releaseEvent.mouse = true;
+                g_pInputManager->onMouseButton(releaseEvent, pointer);
+                
+                response["success"] = true;
+            } else {
+                response["success"] = false;
+                response["error"] = "no pointers found";
+            }
+        }
+        else if (action == "native_press") {
+            int btn = req.value("button", 272);
+            if (!g_pInputManager->m_pointers.empty()) {
+                auto pointer = g_pInputManager->m_pointers.front();
+                
+                IPointer::SButtonEvent pressEvent;
+                pressEvent.button = btn;
+                pressEvent.state = WL_POINTER_BUTTON_STATE_PRESSED;
+                pressEvent.mouse = true;
+                g_pInputManager->onMouseButton(pressEvent, pointer);
+                
+                response["success"] = true;
+            } else {
+                response["success"] = false;
+                response["error"] = "no pointers found";
+            }
+        }
+        else if (action == "native_release") {
+            int btn = req.value("button", 272);
+            if (!g_pInputManager->m_pointers.empty()) {
+                auto pointer = g_pInputManager->m_pointers.front();
+                
+                IPointer::SButtonEvent releaseEvent;
+                releaseEvent.button = btn;
+                releaseEvent.state = WL_POINTER_BUTTON_STATE_RELEASED;
+                releaseEvent.mouse = true;
+                g_pInputManager->onMouseButton(releaseEvent, pointer);
+                
+                response["success"] = true;
+            } else {
+                response["success"] = false;
+                response["error"] = "no pointers found";
+            }
+        }
         else if (action == "virtual_click") {
             int x = req["x"];
             int y = req["y"];

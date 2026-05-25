@@ -126,20 +126,24 @@ class CoordinateFusionEngine:
         import time
         time.sleep(0.05)
         
-        # 4. Resolve ydotool click code
-        btn_code = "0xC0"  # BTN_LEFT
+        # 4. Resolve native click code (standard Linux keycodes: BTN_LEFT=272, BTN_RIGHT=273, BTN_MIDDLE=274)
+        btn_code = 272
         if button == "right":
-            btn_code = "0xC1"
+            btn_code = 273
         elif button == "middle":
-            btn_code = "0xC2"
+            btn_code = 274
         
         success = False
         try:
             for _ in range(count):
-                subprocess.run(["ydotool", "click", btn_code], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            success = True
+                res = self.client.send_command({"action": "native_click", "button": btn_code})
+                if not res.get("success"):
+                    logger.error("Native click simulation failed: %s", res.get("error"))
+                    break
+            else:
+                success = True
         except Exception as e:
-            logger.error("ydotool click simulation failed: %s", e)
+            logger.error("native click IPC command failed: %s", e)
             
         # 5. Wait another 50ms and warp back to the user's original position
         time.sleep(0.05)
