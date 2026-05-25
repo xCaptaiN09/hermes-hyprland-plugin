@@ -105,33 +105,47 @@ class CoordinateFusionEngine:
         return bool(res.get("success"))
 
     def click_xy(self, x: int, y: int, button: str = "left", count: int = 1) -> bool:
-        """Simulates a compositor-level virtual click on (x, y) without stealing the user's cursor.
-        Falls back to ydotool only for right/middle clicks or multi-clicks.
+        """Simulates a cursor warp and click at (x, y) with a timing delay to allow 
+        Wayland/compositor event loop processing, then warps back to original position.
         """
-        # Leverage compositor-level virtual_click for standard left clicks
-        if button == "left" and count == 1:
-            res = self.client.send_command({"action": "virtual_click", "x": x, "y": y})
+        # 1. Get original cursor position
+        orig_x, orig_y = x, y
+        try:
+            res = self.client.send_command({"action": "get_cursor"})
             if res.get("success"):
-                logger.info("Compositor virtual_click dispatched successfully at X=%d, Y=%d", x, y)
-                return True
+                orig_x = res["cursor"]["x"]
+                orig_y = res["cursor"]["y"]
+        except Exception:
+            pass
 
-        # Fallback to physical warp & ydotool click for modifiers, right clicks, and multi-clicks
+        # 2. Warp pointer to target coordinates
         if not self.warp_cursor(x, y):
             logger.warning("Warp cursor failed before clicking.")
         
-        btn_code = "0xC0"
+        # 3. Safe 50ms delay to let compositor and client register pointer focus/enter
+        import time
+        time.sleep(0.05)
+        
+        # 4. Resolve ydotool click code
+        btn_code = "0xC0"  # BTN_LEFT
         if button == "right":
             btn_code = "0xC1"
         elif button == "middle":
             btn_code = "0xC2"
         
+        success = False
         try:
             for _ in range(count):
                 subprocess.run(["ydotool", "click", btn_code], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return True
+            success = True
         except Exception as e:
             logger.error("ydotool click simulation failed: %s", e)
-            return False
+            
+        # 5. Wait another 50ms and warp back to the user's original position
+        time.sleep(0.05)
+        self.warp_cursor(orig_x, orig_y)
+        
+        return success
 
     def list_apps_from_atspi(self) -> List[str]:
         """Queries the AT-SPI desktop bridge for names of active accessible applications."""
