@@ -105,11 +105,20 @@ class CoordinateFusionEngine:
         return bool(res.get("success"))
 
     def click_xy(self, x: int, y: int, button: str = "left", count: int = 1) -> bool:
-        """Moves cursor to (x, y) and simulates a physical click using ydotool."""
+        """Simulates a compositor-level virtual click on (x, y) without stealing the user's cursor.
+        Falls back to ydotool only for right/middle clicks or multi-clicks.
+        """
+        # Leverage compositor-level virtual_click for standard left clicks
+        if button == "left" and count == 1:
+            res = self.client.send_command({"action": "virtual_click", "x": x, "y": y})
+            if res.get("success"):
+                logger.info("Compositor virtual_click dispatched successfully at X=%d, Y=%d", x, y)
+                return True
+
+        # Fallback to physical warp & ydotool click for modifiers, right clicks, and multi-clicks
         if not self.warp_cursor(x, y):
             logger.warning("Warp cursor failed before clicking.")
         
-        # Simulate click via ydotool (0xC0 is left click, 0xC1 is right click, 0xC2 is middle click)
         btn_code = "0xC0"
         if button == "right":
             btn_code = "0xC1"

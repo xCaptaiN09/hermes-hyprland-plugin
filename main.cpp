@@ -185,6 +185,40 @@ std::string handle_command(const std::string& cmd) {
             response["x"] = x;
             response["y"] = y;
         }
+        else if (action == "virtual_click") {
+            int x = req["x"];
+            int y = req["y"];
+            
+            // 1. Record original cursor position
+            auto originalPos = g_pInputManager->getMouseCoordsInternal();
+            
+            // 2. Warp pointer to target
+            g_pCompositor->warpCursorTo({(double)x, (double)y}, true);
+            
+            // 3. Trigger native click
+            if (!g_pInputManager->m_pointers.empty()) {
+                auto pointer = g_pInputManager->m_pointers.front();
+                
+                IPointer::SButtonEvent pressEvent;
+                pressEvent.button = 272; // BTN_LEFT
+                pressEvent.state = WL_POINTER_BUTTON_STATE_PRESSED;
+                pressEvent.mouse = true;
+                g_pInputManager->onMouseButton(pressEvent, pointer);
+
+                IPointer::SButtonEvent releaseEvent;
+                releaseEvent.button = 272; // BTN_LEFT
+                releaseEvent.state = WL_POINTER_BUTTON_STATE_RELEASED;
+                releaseEvent.mouse = true;
+                g_pInputManager->onMouseButton(releaseEvent, pointer);
+            }
+            
+            // 4. Warp pointer back to original position
+            g_pCompositor->warpCursorTo(originalPos, true);
+            
+            response["success"] = true;
+            response["x"] = x;
+            response["y"] = y;
+        }
         else if (action == "focus_window") {
             std::string cls = req.value("class", "");
             std::string title = req.value("title", "");
