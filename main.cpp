@@ -285,7 +285,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         "[hermes] v2 loaded — compositor element map active",
         CHyprColor{0.2, 0.9, 0.2, 1.0}, 5000);
 
-    return {"hermes-hyprland", "Hermes Agent compositor control v2", "CaptaiN", "2.0"};
+    return {"hermes-hyprland", "Hermes Agent compositor control v3", "CaptaiN", "3.0"};
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {

@@ -1,4 +1,4 @@
-# hermes-hyprland-plugin (v2.0)
+# hermes-hyprland-plugin (v3.0 - Zero Mouse Stealing Edition)
 
 A high-performance C++ Hyprland compositor plugin that exposes window geometries, active focus states, and direct cursor warps via a Unix domain socket `/tmp/hermes-hyprland.sock`. 
 
