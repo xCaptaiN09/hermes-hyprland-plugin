@@ -1,5 +1,9 @@
 # hermes-hyprland-plugin (v3.0 - Zero Mouse Stealing Edition)
 
+> [!WARNING]
+> **Experimental & Under Active Development**
+> This compositor plugin and setup are under active, experimental development and are **not a final-grade production product**. Due to the rapid evolution of Wayland, Hyprland APIs, and D-Bus/AT-SPI protocols, some components or features may occasionally break, fail to target properly, or require manual adjustments on different hardware and software configurations. Use with caution in production workflows.
+
 A high-performance C++ Hyprland compositor plugin that exposes window geometries, active focus states, and direct cursor warps via a Unix domain socket `/tmp/hermes-hyprland.sock`. 
 
 When paired with our **Python Coordinate Fusion Engine**, it maps absolute screen targets for client-side applications (like Chrome, Zen Browser, Thunar, etc.) by combining compositor-level window coordinates with D-Bus AT-SPI accessibility trees.
