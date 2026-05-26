@@ -1,5 +1,11 @@
 # hermes-hyprland-plugin (v3.0 - Zero Mouse Stealing Edition)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Language: C++](https://img.shields.io/badge/language-C%2B%2B-blue.svg)](https://en.cppreference.com/)
+[![Language: Python](https://img.shields.io/badge/language-Python-green.svg)](https://www.python.org/)
+[![Compositor: Hyprland](https://img.shields.io/badge/compositor-Hyprland-gradient?color=00bfff)](https://hyprland.org/)
+[![Targeting: AT-SPI DBus](https://img.shields.io/badge/targeting-AT--SPI%20D--Bus-orange)](https://www.freedesktop.org/wiki/Accessibility/AT-SPI2/)
+
 > [!WARNING]
 > **Experimental & Under Active Development**
 > This compositor plugin and setup are under active, experimental development and are **not a final-grade production product**. Due to the rapid evolution of Wayland, Hyprland APIs, and D-Bus/AT-SPI protocols, some components or features may occasionally break, fail to target properly, or require manual adjustments on different hardware and software configurations. Use with caution in production workflows.
