@@ -150,7 +150,17 @@ class CoordinateFusionEngine:
             time.sleep(step_delay)
 
         # Ensure exact final coordinate is met
-        return self._warp_cursor_raw(target_x, target_y)
+        success = self._warp_cursor_raw(target_x, target_y)
+
+        # Kernel-level relative nudge to force hover/enter highlight update in GTK/Qt
+        try:
+            import subprocess
+            subprocess.run(["ydotool", "mousemove", "--", "1", "1"], capture_output=True)
+            subprocess.run(["ydotool", "mousemove", "--", "-1", "-1"], capture_output=True)
+        except Exception:
+            pass
+
+        return success
 
     def click_xy(self, x: int, y: int, button: str = "left", count: int = 1) -> bool:
         """Simulates a smooth cursor move and ydotool click at (x, y) with timing delays
