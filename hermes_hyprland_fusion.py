@@ -99,56 +99,89 @@ class CoordinateFusionEngine:
         logger.warning("Failed to fetch active window or no window in focus.")
         return None
 
-    def warp_cursor(self, x: int, y: int) -> bool:
-        """Warps the desktop cursor to the absolute screen coordinates (x, y)."""
+    def _warp_cursor_raw(self, x: int, y: int) -> bool:
+        """Instantly warps the cursor to x, y via compositor socket."""
         res = self.client.send_command({"action": "move_cursor", "x": x, "y": y})
         return bool(res.get("success"))
 
-    def click_xy(self, x: int, y: int, button: str = "left", count: int = 1) -> bool:
-        """Simulates a cursor warp and click at (x, y) with a timing delay to allow 
-        Wayland/compositor event loop processing, then warps back to original position.
-        """
-        # 1. Get original cursor position
-        orig_x, orig_y = x, y
+    def get_cursor_pos(self) -> Optional[Tuple[int, int]]:
+        """Gets the current cursor coordinates from the compositor."""
         try:
             res = self.client.send_command({"action": "get_cursor"})
-            if res.get("success"):
-                orig_x = res["cursor"]["x"]
-                orig_y = res["cursor"]["y"]
+            if res.get("success") and "cursor" in res:
+                return res["cursor"]["x"], res["cursor"]["y"]
         except Exception:
             pass
+        return None
 
-        # 2. Warp pointer to target coordinates
+    def warp_cursor(self, target_x: int, target_y: int) -> bool:
+        """Moves the desktop cursor smoothly to absolute coordinates (target_x, target_y)
+        using a human-like ease-in-out velocity curve.
+        """
+        start = self.get_cursor_pos()
+        if not start:
+            return self._warp_cursor_raw(target_x, target_y)
+
+        start_x, start_y = start
+        dx = target_x - start_x
+        dy = target_y - start_y
+        distance = (dx**2 + dy**2)**0.5
+
+        if distance < 15:
+            return self._warp_cursor_raw(target_x, target_y)
+
+        # 1 step per 30px, minimum 5 steps, maximum 20 steps
+        steps = max(5, min(20, int(distance / 30)))
+        import time
+        step_delay = 0.005  # 5ms delay per step
+
+        for i in range(1, steps + 1):
+            t = i / steps
+            # Quadratic ease-in-out interpolation
+            if t < 0.5:
+                factor = 2 * t * t
+            else:
+                factor = -1 + (4 - 2 * t) * t
+
+            x = int(start_x + dx * factor)
+            y = int(start_y + dy * factor)
+
+            self._warp_cursor_raw(x, y)
+            time.sleep(step_delay)
+
+        # Ensure exact final coordinate is met
+        return self._warp_cursor_raw(target_x, target_y)
+
+    def click_xy(self, x: int, y: int, button: str = "left", count: int = 1) -> bool:
+        """Simulates a smooth cursor move and ydotool click at (x, y) with timing delays
+        to allow Wayland/compositor event loop to register hover states correctly.
+        """
+        # 1. Warp pointer smoothly to target coordinates
         if not self.warp_cursor(x, y):
             logger.warning("Warp cursor failed before clicking.")
         
-        # 3. Safe 50ms delay to let compositor and client register pointer focus/enter
+        # 2. Wait to let compositor and client register pointer focus/enter
         import time
-        time.sleep(0.05)
+        time.sleep(0.15)
         
-        # 4. Resolve native click code (standard Linux keycodes: BTN_LEFT=272, BTN_RIGHT=273, BTN_MIDDLE=274)
-        btn_code = 272
-        if button == "right":
-            btn_code = 273
-        elif button == "middle":
-            btn_code = 274
+        # 3. Click via ydotool (kernel input layer — extremely reliable for GTK/Qt)
+        button_code = {"left": "0xC0", "right": "0xC8", "middle": "0xC4"}.get(
+            button.lower(), "0xC0"
+        )
         
         success = False
         try:
             for _ in range(count):
-                res = self.client.send_command({"action": "native_click", "button": btn_code})
-                if not res.get("success"):
-                    logger.error("Native click simulation failed: %s", res.get("error"))
-                    break
-            else:
-                success = True
+                subprocess.run(
+                    ["ydotool", "click", button_code],
+                    capture_output=True, text=True, check=True
+                )
+                time.sleep(0.05)
+            success = True
         except Exception as e:
-            logger.error("native click IPC command failed: %s", e)
+            logger.error("ydotool click command failed: %s", e)
             
-        # 5. Wait another 50ms and warp back to the user's original position
-        time.sleep(0.05)
-        self.warp_cursor(orig_x, orig_y)
-        
+        time.sleep(0.1)
         return success
 
     def list_apps_from_atspi(self) -> List[str]:
